@@ -96,13 +96,14 @@ mkdir -p $APP_DIR/{logs,temp,static}
 chown -R $APP_USER:$APP_GROUP $APP_DIR
 
 # Switch to application user for Python setup
+# Switch to application user for Python setup
 print_status "Setting up Python virtual environment..."
-su -c $APP_USER bash << EOF
 cd $APP_DIR
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
+chown -R $APP_USER:$APP_GROUP venv
 EOF
 
 print_success "Python environment setup completed"
