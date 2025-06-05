@@ -96,7 +96,6 @@ mkdir -p $APP_DIR/{logs,temp,static}
 chown -R $APP_USER:$APP_GROUP $APP_DIR
 
 # Switch to application user for Python setup
-# Switch to application user for Python setup
 print_status "Setting up Python virtual environment..."
 cd $APP_DIR
 python3 -m venv venv
@@ -104,7 +103,6 @@ source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 chown -R $APP_USER:$APP_GROUP venv
-EOF
 
 print_success "Python environment setup completed"
 
@@ -328,11 +326,14 @@ chown $APP_USER:$APP_GROUP $APP_DIR/monitor.sh
 
 print_success "Monitoring script installed"
 
-# Test the installation
+# Test the installation (skip if run.sh doesn't have test function)
 print_status "Testing installation..."
-sudo -u $APP_USER bash -c "cd $APP_DIR && ./run.sh test"
-
-print_success "Installation test completed"
+if [ -f "$APP_DIR/run.sh" ] && grep -q "test" "$APP_DIR/run.sh"; then
+    su -c "cd $APP_DIR && ./run.sh test" $APP_USER
+    print_success "Installation test completed"
+else
+    print_warning "Skipping test - run.sh test function not found"
+fi
 
 # Start services
 print_status "Starting services..."
