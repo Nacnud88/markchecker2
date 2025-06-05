@@ -1,0 +1,8 @@
+# Ignore placeholder files
+static/favicon_io/test.txt
+
+# General
+__pycache__/
+*.py[cod]
+*.egg-info/
+.DS_Store
