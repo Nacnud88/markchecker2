@@ -1,9 +1,8 @@
-from flask import Flask, request, jsonify, render_template, Response, stream_with_context
+from flask import Flask, request, jsonify, render_template, Response
 import requests
 import traceback
 import json
 import time
-import random
 import re
 import logging
 from config import get_config
@@ -16,17 +15,26 @@ import threading
 import os
 import atexit
 from datetime import datetime, timedelta
+from config import get_config
 
 # Load configuration
+
 config = get_config()
+=======
+cfg = get_config()
+MAX_WORKERS = cfg.MAX_WORKERS
+CHUNK_SIZE = cfg.CHUNK_SIZE
+REQUEST_TIMEOUT = cfg.REQUEST_TIMEOUT
+GC_ENABLED = cfg.GC_ENABLED
+DB_PATH = cfg.DB_PATH
+SESSION_CLEANUP_HOURS = cfg.SESSION_CLEANUP_HOURS
+
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 sys.setrecursionlimit(2000)
 
-# Database lock for thread safety
-db_lock = threading.Lock()
 
 def init_database():
     """Initialize SQLite database with required tables"""
