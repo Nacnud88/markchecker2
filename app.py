@@ -5,6 +5,7 @@ import json
 import time
 import re
 import logging
+from config import get_config
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 import gc
@@ -17,6 +18,9 @@ from datetime import datetime, timedelta
 from config import get_config
 
 # Load configuration
+
+config = get_config()
+=======
 cfg = get_config()
 MAX_WORKERS = cfg.MAX_WORKERS
 CHUNK_SIZE = cfg.CHUNK_SIZE
@@ -24,6 +28,7 @@ REQUEST_TIMEOUT = cfg.REQUEST_TIMEOUT
 GC_ENABLED = cfg.GC_ENABLED
 DB_PATH = cfg.DB_PATH
 SESSION_CLEANUP_HOURS = cfg.SESSION_CLEANUP_HOURS
+
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -33,7 +38,7 @@ sys.setrecursionlimit(2000)
 
 def init_database():
     """Initialize SQLite database with required tables"""
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(config.DB_PATH) as conn:
         conn.execute('''
             CREATE TABLE IF NOT EXISTS sessions (
                 session_id TEXT PRIMARY KEY,
@@ -82,8 +87,8 @@ def init_database():
 def cleanup_old_sessions():
     """Clean up sessions older than SESSION_CLEANUP_HOURS"""
     try:
-        cutoff_time = datetime.now() - timedelta(hours=SESSION_CLEANUP_HOURS)
-        with sqlite3.connect(DB_PATH) as conn:
+        cutoff_time = datetime.now() - timedelta(hours=config.SESSION_CLEANUP_HOURS)
+        with sqlite3.connect(config.DB_PATH) as conn:
             # Get old session IDs
             cursor = conn.execute(
                 'SELECT session_id FROM sessions WHERE created_at < ?', 
@@ -107,7 +112,7 @@ def cleanup_old_sessions():
 def create_session():
     """Create a new session and return session ID"""
     session_id = str(uuid.uuid4())
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(config.DB_PATH) as conn:
         conn.execute(
             'INSERT INTO sessions (session_id) VALUES (?)', 
             (session_id,)
@@ -117,7 +122,7 @@ def create_session():
 
 def update_session_progress(session_id, processed_terms=None, total_products=None):
     """Update session progress"""
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(config.DB_PATH) as conn:
         updates = ['last_accessed = CURRENT_TIMESTAMP']
         values = []
         
@@ -139,7 +144,7 @@ def update_session_progress(session_id, processed_terms=None, total_products=Non
 
 def store_products_batch(session_id, products_data):
     """Store a batch of products in the database"""
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(config.DB_PATH) as conn:
         for product in products_data:
             # Convert offers to JSON string if present
             offers_json = json.dumps(product.get('offers', [])) if product.get('offers') else None
@@ -175,7 +180,7 @@ def store_products_batch(session_id, products_data):
 
 def get_session_products(session_id):
     """Retrieve all products for a session from database"""
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(config.DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.execute('''
             SELECT * FROM products WHERE session_id = ? ORDER BY id
@@ -217,7 +222,7 @@ def get_session_products(session_id):
 
 def get_session_stats(session_id):
     """Get statistics for a session"""
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(config.DB_PATH) as conn:
         cursor = conn.execute('''
             SELECT 
                 COUNT(*) as total_products,
@@ -236,7 +241,7 @@ def get_session_stats(session_id):
 def cleanup_session(session_id):
     """Clean up all data for a specific session"""
     try:
-        with sqlite3.connect(DB_PATH) as conn:
+        with sqlite3.connect(config.DB_PATH) as conn:
             conn.execute('DELETE FROM products WHERE session_id = ?', (session_id,))
             conn.execute('DELETE FROM sessions WHERE session_id = ?', (session_id,))
             conn.commit()
@@ -415,7 +420,7 @@ def fetch_product_data(product_id, session_id):
             "term": product_id
         }
 
-        response = requests.get(url, headers=headers, params=params, cookies=cookies, timeout=REQUEST_TIMEOUT)
+        response = requests.get(url, headers=headers, params=params, cookies=cookies, timeout=config.REQUEST_TIMEOUT)
 
         if response.status_code != 200:
             print(f"API returned status code {response.status_code} for term {product_id}")
@@ -748,7 +753,7 @@ def start_search():
         session_id = create_session()
         
         # Update session with total terms
-        with sqlite3.connect(DB_PATH) as conn:
+        with sqlite3.connect(config.DB_PATH) as conn:
             conn.execute(
                 'UPDATE sessions SET total_terms = ? WHERE session_id = ?',
                 (len(individual_terms), session_id)
@@ -764,7 +769,7 @@ def start_search():
             "contains_ea_codes": contains_ea_codes,
             "search_type": search_type,
             "total_terms": len(individual_terms),
-            "total_chunks": (len(individual_terms) + CHUNK_SIZE - 1) // CHUNK_SIZE
+            "total_chunks": (len(individual_terms) + config.CHUNK_SIZE - 1) // config.CHUNK_SIZE
         })
 
     except Exception as e:
@@ -792,7 +797,7 @@ def process_chunk():
         processed_count = 0
 
         # Process terms in this chunk
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        with ThreadPoolExecutor(max_workers=config.MAX_WORKERS) as executor:
             futures = {executor.submit(process_term, term, voila_session_id, limit, is_article_search): term for term in search_terms}
             
             for future in as_completed(futures):
@@ -828,7 +833,7 @@ def process_chunk():
             store_products_batch(session_id, chunk_products)
 
         # Update session progress
-        with sqlite3.connect(DB_PATH) as conn:
+        with sqlite3.connect(config.DB_PATH) as conn:
             cursor = conn.execute(
                 'SELECT processed_terms, total_products FROM sessions WHERE session_id = ?',
                 (session_id,)
@@ -845,7 +850,7 @@ def process_chunk():
                 update_session_progress(session_id, new_processed, new_total_products)
 
         # Run garbage collection
-        if GC_ENABLED:
+        if config.GC_ENABLED:
             collected = gc.collect()
             logging.debug(f"Garbage collection: {collected} objects collected")
 
@@ -898,7 +903,7 @@ def cleanup_session_endpoint():
 def get_session_progress(session_id):
     """Get progress for a session"""
     try:
-        with sqlite3.connect(DB_PATH) as conn:
+        with sqlite3.connect(config.DB_PATH) as conn:
             cursor = conn.execute(
                 'SELECT total_terms, processed_terms, total_products FROM sessions WHERE session_id = ?',
                 (session_id,)
@@ -926,4 +931,4 @@ init_database()
 atexit.register(cleanup_old_sessions)
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=config.DEBUG, host="0.0.0.0", port=5000)
