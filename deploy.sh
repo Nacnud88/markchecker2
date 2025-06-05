@@ -97,7 +97,7 @@ chown -R $APP_USER:$APP_GROUP $APP_DIR
 
 # Switch to application user for Python setup
 print_status "Setting up Python virtual environment..."
-sudo -u $APP_USER bash << EOF
+su -c $APP_USER bash << EOF
 cd $APP_DIR
 python3 -m venv venv
 source venv/bin/activate
