@@ -1,0 +1,78 @@
+# voila-price-checker.service
+# Systemd service file for Voila Price Checker High Volume Edition
+# 
+# Installation:
+# 1. Copy this file to /etc/systemd/system/voila-price-checker.service
+# 2. Update the paths in ExecStart and WorkingDirectory to match your installation
+# 3. Update User and Group to match your user
+# 4. Run: sudo systemctl daemon-reload
+# 5. Run: sudo systemctl enable voila-price-checker
+# 6. Run: sudo systemctl start voila-price-checker
+
+[Unit]
+Description=Voila Price Checker High Volume Edition
+Documentation=https://github.com/your-repo/voila-price-checker
+After=network.target
+Wants=network.target
+
+[Service]
+Type=exec
+User=www-data
+Group=www-data
+
+# Update these paths to match your installation
+WorkingDirectory=/opt/voila-price-checker
+ExecStart=/opt/voila-price-checker/venv/bin/gunicorn -c gunicorn_config.py app:app
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# Process management
+Restart=always
+RestartSec=5
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/voila-price-checker
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Resource limits for 1GB RAM server
+LimitNOFILE=65536
+LimitNPROC=1024
+
+# Memory limits (allow up to 800MB for the application)
+MemoryAccounting=true
+MemoryMax=800M
+MemoryHigh=700M
+
+# CPU limits (allow full CPU usage but lower priority)
+CPUAccounting=true
+CPUQuota=400%
+Nice=5
+
+# I/O limits
+IOAccounting=true
+IOWeight=500
+
+# Environment variables
+Environment="ENVIRONMENT=production"
+Environment="PYTHONPATH=/opt/voila-price-checker"
+Environment="PYTHONUNBUFFERED=1"
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=voila-price-checker
+
+# Cleanup on stop
+ExecStopPost=/bin/rm -f /opt/voila-price-checker/temp_products.db*
+ExecStopPost=/bin/find /opt/voila-price-checker/temp -type f -mmin +5 -delete
+
+[Install]
+WantedBy=multi-user.target
