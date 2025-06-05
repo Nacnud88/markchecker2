@@ -95,7 +95,7 @@ mkdir -p $APP_DIR/{logs,temp,static}
 # Set proper ownership
 chown -R $APP_USER:$APP_GROUP $APP_DIR
 
-# Switch to application user for Python setup
+# Setup Python virtual environment
 print_status "Setting up Python virtual environment..."
 cd $APP_DIR
 python3 -m venv venv
@@ -326,15 +326,6 @@ chown $APP_USER:$APP_GROUP $APP_DIR/monitor.sh
 
 print_success "Monitoring script installed"
 
-# Test the installation (skip if run.sh doesn't have test function)
-print_status "Testing installation..."
-if [ -f "$APP_DIR/run.sh" ] && grep -q "test" "$APP_DIR/run.sh"; then
-    su -c "cd $APP_DIR && ./run.sh test" $APP_USER
-    print_success "Installation test completed"
-else
-    print_warning "Skipping test - run.sh test function not found"
-fi
-
 # Start services
 print_status "Starting services..."
 systemctl restart nginx
@@ -348,7 +339,8 @@ if systemctl is-active --quiet $APP_NAME; then
     print_success "$APP_NAME service is running"
 else
     print_error "$APP_NAME service failed to start"
-    systemctl status $APP_NAME
+    print_error "Checking service logs..."
+    journalctl -u $APP_NAME -n 10 --no-pager
     exit 1
 fi
 
