@@ -20,7 +20,7 @@ from config import get_config
 # Load configuration
 
 config = get_config()
-=======
+
 cfg = get_config()
 MAX_WORKERS = cfg.MAX_WORKERS
 CHUNK_SIZE = cfg.CHUNK_SIZE
