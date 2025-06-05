@@ -1,9 +1,8 @@
-from flask import Flask, request, jsonify, render_template, Response, stream_with_context
+from flask import Flask, request, jsonify, render_template, Response
 import requests
 import traceback
 import json
 import time
-import random
 import re
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -29,8 +28,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 sys.setrecursionlimit(2000)
 
-# Database lock for thread safety
-db_lock = threading.Lock()
 
 def init_database():
     """Initialize SQLite database with required tables"""
