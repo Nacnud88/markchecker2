@@ -14,14 +14,16 @@ import threading
 import os
 import atexit
 from datetime import datetime, timedelta
+from config import get_config
 
-# Configuration constants
-MAX_WORKERS = 3
-CHUNK_SIZE = 500  # Process articles in chunks of 500
-REQUEST_TIMEOUT = 15
-GC_ENABLED = True
-DB_PATH = "temp_products.db"
-SESSION_CLEANUP_HOURS = 24  # Clean up sessions older than 24 hours
+# Load configuration
+cfg = get_config()
+MAX_WORKERS = cfg.MAX_WORKERS
+CHUNK_SIZE = cfg.CHUNK_SIZE
+REQUEST_TIMEOUT = cfg.REQUEST_TIMEOUT
+GC_ENABLED = cfg.GC_ENABLED
+DB_PATH = cfg.DB_PATH
+SESSION_CLEANUP_HOURS = cfg.SESSION_CLEANUP_HOURS
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

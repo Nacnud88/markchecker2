@@ -213,23 +213,3 @@ def print_config_summary(config):
               f"{estimate['chunks_needed']:>3} chunks")
     print("="*50 + "\n")
 
-if __name__ == "__main__":
-    # Example usage and testing
-    config = get_config()
-    print_config_summary(config)
-    
-    # Validate configuration
-    errors = validate_config(config)
-    if errors:
-        print("Configuration Errors:")
-        for error in errors:
-            print(f"  - {error}")
-    else:
-        print("✓ Configuration is valid")
-    
-    # Show available profiles
-    print("\nAVAILABLE PERFORMANCE PROFILES:")
-    print("-" * 50)
-    for name, profile in PERFORMANCE_PROFILES.items():
-        print(f"{name:>15}: {profile['description']}")
-    print("-" * 50)
